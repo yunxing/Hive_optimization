@@ -1,0 +1,19 @@
+K 15
+reviewboard:url
+V 26
+https://reviews.apache.org
+K 10
+svn:ignore
+V 112
+build
+build-eclipse
+.arc_jira_lib
+.classpath*
+.externalToolBuilders
+.project
+.settings
+*.launch
+*~
+metastore_db
+
+END
