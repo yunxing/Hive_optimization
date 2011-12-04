@@ -169,6 +169,7 @@ public class JoinUtil {
       Object obj = (ObjectInspectorUtils.copyToStandardObject(keyFields.get(0)
           .evaluate(row), keyFieldsOI.get(0),
           ObjectInspectorCopyOption.WRITABLE));
+	  
       MapJoinSingleKey key = new MapJoinSingleKey(obj);
       return key;
     }else if(size == 2){

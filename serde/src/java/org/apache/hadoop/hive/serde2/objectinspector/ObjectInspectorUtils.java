@@ -104,6 +104,7 @@ public final class ObjectInspectorUtils {
     ObjectInspector result = null;
     switch (oi.getCategory()) {
     case PRIMITIVE: {
+
       PrimitiveObjectInspector poi = (PrimitiveObjectInspector) oi;
       switch (objectInspectorOption) {
       case DEFAULT: {
@@ -130,6 +131,7 @@ public final class ObjectInspectorUtils {
       break;
     }
     case LIST: {
+
       ListObjectInspector loi = (ListObjectInspector) oi;
       result = ObjectInspectorFactory
           .getStandardListObjectInspector(getStandardObjectInspector(loi
@@ -137,6 +139,7 @@ public final class ObjectInspectorUtils {
       break;
     }
     case MAP: {
+
       MapObjectInspector moi = (MapObjectInspector) oi;
       result = ObjectInspectorFactory.getStandardMapObjectInspector(
           getStandardObjectInspector(moi.getMapKeyObjectInspector(),
@@ -145,6 +148,7 @@ public final class ObjectInspectorUtils {
       break;
     }
     case STRUCT: {
+
       StructObjectInspector soi = (StructObjectInspector) oi;
       List<? extends StructField> fields = soi.getAllStructFieldRefs();
       List<String> fieldNames = new ArrayList<String>(fields.size());
@@ -160,6 +164,7 @@ public final class ObjectInspectorUtils {
       break;
     }
     case UNION: {
+
       UnionObjectInspector uoi = (UnionObjectInspector) oi;
       List<ObjectInspector> ois = new ArrayList<ObjectInspector>();
       for (ObjectInspector eoi : uoi.getObjectInspectors()) {

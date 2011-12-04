@@ -1,4 +1,3 @@
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -39,6 +38,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.DriverContext;
+import org.apache.hadoop.hive.ql.exec.persistence.AbstractMapJoinKey;
+import org.apache.hadoop.hive.ql.exec.persistence.HashMapWrapper;
+import org.apache.hadoop.hive.ql.exec.persistence.MapJoinObjectValue;
+import org.apache.hadoop.hive.ql.exec.persistence.MapJoinRowContainer;
+import org.apache.hadoop.hive.ql.exec.persistence.RowContainer;
+import org.apache.hadoop.hive.ql.exec.persistence.MapJoinSingleKey;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo.DataContainer;
 import org.apache.hadoop.hive.ql.io.HiveFileFormatUtils;
@@ -50,13 +55,21 @@ import org.apache.hadoop.hive.ql.plan.LoadFileDesc;
 import org.apache.hadoop.hive.ql.plan.LoadMultiFilesDesc;
 import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
 import org.apache.hadoop.hive.ql.plan.MoveWork;
+import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.api.StageType;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde2.Deserializer;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.lazy.LazyPrimitive;
+
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.mapred.InputFormat;
@@ -268,23 +281,32 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  InputSplit[] inputSplits;
 		  inputSplits = inputFormat.getSplits(jc, 1);
 		  		  
-		  int hashTableThreshold = HiveConf.getIntVar(hconf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
-		  float hashTableLoadFactor = HiveConf.getFloatVar(hconf,
+		  int hashTableThreshold = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
+		  float hashTableLoadFactor = HiveConf.getFloatVar(conf,
 														   HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
 		  //TODO: add a conf var
-		  float hashTableMaxMemoryUsage = HiveConf.getFloatVar(hconf,
+		  float hashTableMaxMemoryUsage = HiveConf.getFloatVar(conf,
 															   HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
+		  long hashTableScale = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
+		  if (hashTableScale <= 0) {
+			hashTableScale = 1;
+		  }
+			  
 		  org.apache.hadoop.hive.metastore.api.Table tTable = table.getTTable();
-		  
 		  int i = 0;
+		  
 		  //build a hashtable for every column
 		  for (org.apache.hadoop.hive.metastore.api.FieldSchema fs : tTable.getSd().getCols())
 		  {
+			
 			HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>(
-				hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
+			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
+			boolean isAbort = false;
+			int rowNumber = 0;
 			int splitNum = 0;
 			//scan each splits
-			while(splitNum < inputSplits.length)
+			System.out.println("input splits length:" + inputSplits.length);
+			while(!isAbort && splitNum < inputSplits.length)
 			{
 			  RecordReader<WritableComparable, Writable> currRecReader;
 			  currRecReader = inputFormat.getRecordReader(inputSplits[splitNum++], jc, Reporter.NULL);
@@ -294,48 +316,104 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			  value = currRecReader.createValue();
 			  
 			  boolean ret = currRecReader.next(key, value);
-			  while (ret)
+			  while (!isAbort && ret)
 			  {
 				Object obj = serde.deserialize(value);
 				InspectableObject row = new InspectableObject(obj, serde.getObjectInspector());
 				String column = fs.getName();
-				Typeinfo type = TypeInfoUtils.TypeinfogetTypeInfoFromTypeString(fs.getType());
-				List<ExprNodeDesc> newKeyExpr == new ArrayList<ExprNodeDesc>();
-				newKeyExpr.add(new ExprNodeColumnDesc(type, column, "" + i, false));
-				Object obj = (ObjectInspectorUtils.copyToStandardObject(newKeyExpre.get(0)
-																		.evaluate(row),
-																		//TODO: Change this
-																		keyFieldsOI.get(0),
-																		ObjectInspectorCopyOption.WRITABLE));
-				AbstractMapJoinKey keyMap = new MapJoinSingleKey(obj);
+				TypeInfo type = TypeInfoUtils.getTypeInfoFromTypeString(fs.getType());
+				ExprNodeEvaluator ene = ExprNodeEvaluatorFactory.get(new ExprNodeColumnDesc(type, column, "" + i, false));
+				ene.initialize((StructObjectInspector)serde.getObjectInspector());
+				Object afterEval = ene.evaluate(row.o);
+				
+				Object KeyObj = ObjectInspectorUtils.copyToStandardObject(((LazyPrimitive) afterEval).getWritableObject(),
+																		  PrimitiveObjectInspectorFactory.
+																		  getPrimitiveWritableObjectInspector(
+																			((PrimitiveTypeInfo) type).getPrimitiveCategory()
+																			),
+																		  ObjectInspectorCopyOption.WRITABLE);
+				
+				AbstractMapJoinKey keyMap = new MapJoinSingleKey(KeyObj);
+
+				// now handle the values
+				List<ExprNodeEvaluator> valueFields = new ArrayList<ExprNodeEvaluator>();
+				List<ObjectInspector> valueFieldsOI = new ArrayList<ObjectInspector>();
+				for (org.apache.hadoop.hive.metastore.api.FieldSchema f : tTable.getSd().getCols())				
+				{
+				  TypeInfo typeInfo = TypeInfoUtils.getTypeInfoFromTypeString(f.getType());
+				  ExprNodeEvaluator en = ExprNodeEvaluatorFactory.get(new ExprNodeColumnDesc(typeInfo, f.getName(), "" + i, false));
+				  en.initialize((StructObjectInspector)serde.getObjectInspector());
+				  valueFieldsOI.add(PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(
+									  ((PrimitiveTypeInfo) typeInfo).getPrimitiveCategory()
+									  ));
+				  valueFields.add(en);
+				}
+				
+				Object[] values = new Object[valueFields.size()];
+				for (int j = 0; j < valueFields.size(); j++) {
+				  values[j] = ObjectInspectorUtils.copyToStandardObject(((LazyPrimitive) valueFields.get(j).evaluate(row.o)).getWritableObject()
+																		, valueFieldsOI.get(j),
+																		ObjectInspectorCopyOption.WRITABLE);
+				}
+
+				MapJoinObjectValue o = hashTable.get(keyMap);
+				MapJoinRowContainer<Object[]> res = null;
+
+				boolean needNewKey = true;
+				if (o == null) {
+				  res = new MapJoinRowContainer<Object[]>();
+				  res.add(values);
+				  // Construct externalizable objects for key and value
+				  if (needNewKey) {
+					MapJoinObjectValue valueObj = new MapJoinObjectValue(0, res);
+
+					rowNumber++;
+					if (rowNumber > hashTableScale && rowNumber % hashTableScale == 0) {
+					  isAbort = hashTable.isAbort(rowNumber, console);
+					  if (isAbort) {
+						break;
+					  }
+					}
+					hashTable.put(keyMap, valueObj);
+				  }
+
+				} else {
+				  res = o.getObj();
+				  res.add(values);
+				}
+				
 				ret = currRecReader.next(key, value);
 			  }
-
 			}
 			++i;
+			if (isAbort)
+			  System.out.println("Column: " + fs.getName() + " can not be used to hash join ");
+			else
+			  System.out.println("Column: " + fs.getName() + " can be used to hash join ");
 		  }
+		  
 
-        } else {
-          LOG.info("Partition is: " + tbd.getPartitionSpec().toString());
-          // deal with dynamic partitions
-          DynamicPartitionCtx dpCtx = tbd.getDPCtx();
-          if (dpCtx != null && dpCtx.getNumDPCols() > 0) { // dynamic partitions
-            List<LinkedHashMap<String, String>> dps = Utilities.getFullDPSpecs(conf, dpCtx);
+		} else {
+		  LOG.info("Partition is: " + tbd.getPartitionSpec().toString());
+		  // deal with dynamic partitions
+		  DynamicPartitionCtx dpCtx = tbd.getDPCtx();
+		  if (dpCtx != null && dpCtx.getNumDPCols() > 0) { // dynamic partitions
+			List<LinkedHashMap<String, String>> dps = Utilities.getFullDPSpecs(conf, dpCtx);
 
-            // publish DP columns to its subscribers
-            if (dps != null && dps.size() > 0) {
-              pushFeed(FeedType.DYNAMIC_PARTITIONS, dps);
-            }
+			// publish DP columns to its subscribers
+			if (dps != null && dps.size() > 0) {
+			  pushFeed(FeedType.DYNAMIC_PARTITIONS, dps);
+			}
 
-            // load the list of DP partitions and return the list of partition specs
-            // TODO: In a follow-up to HIVE-1361, we should refactor loadDynamicPartitions
-            // to use Utilities.getFullDPSpecs() to get the list of full partSpecs.
-            // After that check the number of DPs created to not exceed the limit and
-            // iterate over it and call loadPartition() here.
-            // The reason we don't do inside HIVE-1361 is the latter is large and we
-            // want to isolate any potential issue it may introduce.
-            ArrayList<LinkedHashMap<String, String>> dp =
-              db.loadDynamicPartitions(
+			// load the list of DP partitions and return the list of partition specs
+			// TODO: In a follow-up to HIVE-1361, we should refactor loadDynamicPartitions
+			// to use Utilities.getFullDPSpecs() to get the list of full partSpecs.
+			// After that check the number of DPs created to not exceed the limit and
+			// iterate over it and call loadPartition() here.
+			// The reason we don't do inside HIVE-1361 is the latter is large and we
+			// want to isolate any potential issue it may introduce.
+			ArrayList<LinkedHashMap<String, String>> dp =
+			  db.loadDynamicPartitions(
 				new Path(tbd.getSourceDir()),
 				tbd.getTable().getTableName(),
 				tbd.getPartitionSpec(),
@@ -343,100 +421,100 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				dpCtx.getNumDPCols(),
 				tbd.getHoldDDLTime());
 
-            if (dp.size() == 0 && conf.getBoolVar(HiveConf.ConfVars.HIVE_ERROR_ON_EMPTY_PARTITION)) {
-              throw new HiveException("This query creates no partitions." +
+			if (dp.size() == 0 && conf.getBoolVar(HiveConf.ConfVars.HIVE_ERROR_ON_EMPTY_PARTITION)) {
+			  throw new HiveException("This query creates no partitions." +
 									  " To turn off this error, set hive.error.on.empty.partition=false.");
-            }
+			}
 
-            // for each partition spec, get the partition
-            // and put it to WriteEntity for post-exec hook
-            for (LinkedHashMap<String, String> partSpec: dp) {
-              Partition partn = db.getPartition(table, partSpec, false);
+			// for each partition spec, get the partition
+			// and put it to WriteEntity for post-exec hook
+			for (LinkedHashMap<String, String> partSpec: dp) {
+			  Partition partn = db.getPartition(table, partSpec, false);
 
-              WriteEntity enty = new WriteEntity(partn, true);
-              if (work.getOutputs() != null) {
-                work.getOutputs().add(enty);
-              }
-              // Need to update the queryPlan's output as well so that post-exec hook get executed.
-              // This is only needed for dynamic partitioning since for SP the the WriteEntity is
-              // constructed at compile time and the queryPlan already contains that.
-              // For DP, WriteEntity creation is deferred at this stage so we need to update
-              // queryPlan here.
-              if (queryPlan.getOutputs() == null) {
-                queryPlan.setOutputs(new HashSet<WriteEntity>());
-              }
-              queryPlan.getOutputs().add(enty);
+			  WriteEntity enty = new WriteEntity(partn, true);
+			  if (work.getOutputs() != null) {
+				work.getOutputs().add(enty);
+			  }
+			  // Need to update the queryPlan's output as well so that post-exec hook get executed.
+			  // This is only needed for dynamic partitioning since for SP the the WriteEntity is
+			  // constructed at compile time and the queryPlan already contains that.
+			  // For DP, WriteEntity creation is deferred at this stage so we need to update
+			  // queryPlan here.
+			  if (queryPlan.getOutputs() == null) {
+				queryPlan.setOutputs(new HashSet<WriteEntity>());
+			  }
+			  queryPlan.getOutputs().add(enty);
 
-              // update columnar lineage for each partition
-              dc = new DataContainer(table.getTTable(), partn.getTPartition());
+			  // update columnar lineage for each partition
+			  dc = new DataContainer(table.getTTable(), partn.getTPartition());
 
-              if (SessionState.get() != null) {
-                SessionState.get().getLineageState().setLineage(tbd.getSourceDir(), dc,
+			  if (SessionState.get() != null) {
+				SessionState.get().getLineageState().setLineage(tbd.getSourceDir(), dc,
 																table.getCols());
-              }
+			  }
 
-              console.printInfo("\tLoading partition " + partSpec);
-            }
-            dc = null; // reset data container to prevent it being added again.
-          } else { // static partitions
-            db.loadPartition(new Path(tbd.getSourceDir()), tbd.getTable().getTableName(),
+			  console.printInfo("\tLoading partition " + partSpec);
+			}
+			dc = null; // reset data container to prevent it being added again.
+		  } else { // static partitions
+			db.loadPartition(new Path(tbd.getSourceDir()), tbd.getTable().getTableName(),
 							 tbd.getPartitionSpec(), tbd.getReplace(), tbd.getHoldDDLTime(), tbd.getInheritTableSpecs());
-          	Partition partn = db.getPartition(table, tbd.getPartitionSpec(), false);
-          	dc = new DataContainer(table.getTTable(), partn.getTPartition());
-          	// add this partition to post-execution hook
-          	if (work.getOutputs() != null) {
-          	  work.getOutputs().add(new WriteEntity(partn, true));
-          	}
+			Partition partn = db.getPartition(table, tbd.getPartitionSpec(), false);
+			dc = new DataContainer(table.getTTable(), partn.getTPartition());
+			// add this partition to post-execution hook
+			if (work.getOutputs() != null) {
+			  work.getOutputs().add(new WriteEntity(partn, true));
+			}
 		  }
-        }
-        if (SessionState.get() != null && dc != null) {
-          SessionState.get().getLineageState().setLineage(tbd.getSourceDir(), dc,
+		}
+		if (SessionState.get() != null && dc != null) {
+		  SessionState.get().getLineageState().setLineage(tbd.getSourceDir(), dc,
 														  table.getCols());
-        }
-      }
+		}
+	  }
 
-      return 0;
-    } catch (Exception e) {
-      console.printError("Failed with exception " + e.getMessage(), "\n"
+	  return 0;
+	} catch (Exception e) {
+	  console.printError("Failed with exception " + e.getMessage(), "\n"
 						 + StringUtils.stringifyException(e));
-      return (1);
-    }
+	  return (1);
+	}
   }
 
-  /*
-   * Does the move task involve moving to a local file system
-   */
+/*
+ * Does the move task involve moving to a local file system
+ */
   public boolean isLocal() {
-    LoadTableDesc tbd = work.getLoadTableWork();
-    if (tbd != null) {
-      return false;
-    }
+	LoadTableDesc tbd = work.getLoadTableWork();
+	if (tbd != null) {
+	  return false;
+	}
 
-    LoadFileDesc lfd = work.getLoadFileWork();
-    if (lfd != null) {
-      if (lfd.getIsDfsDir()) {
-        return false;
-      } else {
-        return true;
-      }
-    }
+	LoadFileDesc lfd = work.getLoadFileWork();
+	if (lfd != null) {
+	  if (lfd.getIsDfsDir()) {
+		return false;
+	  } else {
+		return true;
+	  }
+	}
 
-    return false;
+	return false;
   }
 
   @Override
   public StageType getType() {
-    return StageType.MOVE;
+	return StageType.MOVE;
   }
 
   @Override
   public String getName() {
-    return "MOVE";
+	return "MOVE";
   }
 
 
   @Override
   protected void localizeMRTmpFilesImpl(Context ctx) {
-    // no-op
+	// no-op
   }
 }

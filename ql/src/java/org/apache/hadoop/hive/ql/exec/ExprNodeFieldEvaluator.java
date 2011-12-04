@@ -75,7 +75,7 @@ public class ExprNodeFieldEvaluator extends ExprNodeEvaluator {
 
   @Override
   public Object evaluate(Object row) throws HiveException {
-
+	System.out.println("in field evaluator");
     // Get the result in leftInspectableObject
     Object left = leftEvaluator.evaluate(row);
 
