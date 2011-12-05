@@ -59,10 +59,18 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
     HashMap<String, Table> aliasToTable;
     private String localTmpDir;
     private String hdfsTmpDir;
-
+	private String columnToJoin;
+	
     public ConditionalResolverCommonJoinCtx() {
     }
 
+	public void setColumnToJoin(String columnToJoin){
+	  this.columnToJoin = columnToJoin;
+	}
+	public String getColumnToJoin(){
+	  return columnToJoin;
+	}
+	
     public HashMap<String, Task<? extends Serializable>> getAliasToTask() {
       return aliasToTask;
     }
@@ -133,7 +141,7 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
     HashMap<String, Table> aliasToTable = ctx.getAliasToTable();	
     String bigTableAlias = this.resolveMapJoinTask(pathToAliases, ctx
 												   .getAliasToTask(), aliasToKnownSize, aliasToTable, ctx.getHdfsTmpDir(), ctx
-												   .getLocalTmpDir(), conf);
+												   .getLocalTmpDir(), conf, ctx.getColumnToJoin());
 
     if (bigTableAlias == null) {
       // run common join task
@@ -175,7 +183,7 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
 	HashMap<String, Task<? extends Serializable>> aliasToTask,
 	HashMap<String, Long> aliasToKnownSize, HashMap<String, Table> aliasToTable,
 	String hdfsTmpDir,	  
-	String localTmpDir, HiveConf conf) {
+	String localTmpDir, HiveConf conf, String columnToJoin) {
 
     String bigTableFileAlias = null;
     long smallTablesFileSizeSum = 0;

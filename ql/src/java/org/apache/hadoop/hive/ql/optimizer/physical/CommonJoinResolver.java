@@ -228,14 +228,17 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       resolverCtx.setHdfsTmpDir(context.getMRScratchDir());
 	  //====code changed====
 	  resolverCtx.setAliasToTable(parseCtx.getQB().getMetaData().getAliasToTable());
+	  String columnToJoin = new String();
+	  
 	  for (QBJoinTree qbjt : parseCtx.getJoinContext().values())
 		for (ArrayList<ASTNode> al : qbjt.getExpressions())
 		{
 		  for (ASTNode a : al)
 		  {
-			System.out.println("Column name:" + a.dump());
+			columnToJoin = a.dump().split("\\)\\(")[1].split("\\)\\)")[0];
 		  }
 		}
+      resolverCtx.setColumnToJoin(columnToJoin);
 	  Set<String> aliasToTabs = parseCtx.getQB().getTabAliases();
       cndTsk.setResolverCtx(resolverCtx);
 
