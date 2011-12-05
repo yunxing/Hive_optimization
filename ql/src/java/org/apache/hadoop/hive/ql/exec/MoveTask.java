@@ -284,9 +284,8 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  int hashTableThreshold = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
 		  float hashTableLoadFactor = HiveConf.getFloatVar(conf,
 														   HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
-		  //TODO: add a conf var
 		  float hashTableMaxMemoryUsage = HiveConf.getFloatVar(conf,
-															   HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
+															   HiveConf.ConfVars.HIVEHASHTABLEMAXMEMORYUSAGE);
 		  long hashTableScale = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
 		  if (hashTableScale <= 0) {
 			hashTableScale = 1;

@@ -81,7 +81,7 @@ public class Table implements Serializable {
   private Class<? extends InputFormat> inputFormatClass;
   private URI uri;
   private HiveStorageHandler storageHandler;
-
+  
   /**
    * Used only for serialization.
    */

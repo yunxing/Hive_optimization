@@ -42,7 +42,7 @@ public class QBJoinTree implements Serializable{
 
   // keeps track of the right-hand-side table name of the left-semi-join, and
   // its list of join keys
-  private final HashMap<String, ArrayList<ASTNode>> rhsSemijoin;
+  public final HashMap<String, ArrayList<ASTNode>> rhsSemijoin;
 
   // join conditions
   private ArrayList<ArrayList<ASTNode>> expressions;

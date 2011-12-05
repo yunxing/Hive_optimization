@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.Set;
 
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -52,6 +53,7 @@ import org.apache.hadoop.hive.ql.plan.MapredWork;
 import org.apache.hadoop.hive.ql.plan.ConditionalResolverCommonJoin.ConditionalResolverCommonJoinCtx;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;  
+import org.apache.hadoop.hive.ql.parse.ASTNode;
 
 public class CommonJoinResolver implements PhysicalPlanResolver {
   static final private Log LOG = LogFactory.getLog(CommonJoinResolver.class.getName());
@@ -224,6 +226,17 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       resolverCtx.setCommonJoinTask(currTask);
       resolverCtx.setLocalTmpDir(context.getLocalScratchDir(false));
       resolverCtx.setHdfsTmpDir(context.getMRScratchDir());
+	  //====code changed====
+	  resolverCtx.setAliasToTable(parseCtx.getQB().getMetaData().getAliasToTable());
+	  for (QBJoinTree qbjt : parseCtx.getJoinContext().values())
+		for (ArrayList<ASTNode> al : qbjt.getExpressions())
+		{
+		  for (ASTNode a : al)
+		  {
+			System.out.println("Column name:" + a.dump());
+		  }
+		}
+	  Set<String> aliasToTabs = parseCtx.getQB().getTabAliases();
       cndTsk.setResolverCtx(resolverCtx);
 
       //replace the current task with the new generated conditional task

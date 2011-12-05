@@ -26,17 +26,19 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
   private static final org.apache.thrift.protocol.TField NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("name", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField COMMENT_FIELD_DESC = new org.apache.thrift.protocol.TField("comment", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField CANJOIN_FIELD_DESC = new org.apache.thrift.protocol.TField("canjoin", org.apache.thrift.protocol.TType.BOOL, (short)4);
 
   private String name; // required
   private String type; // required
   private String comment; // required
-
+//  private String canjoin; // required
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     NAME((short)1, "name"),
     TYPE((short)2, "type"),
     COMMENT((short)3, "comment");
-
+//    CANJOIN((short)4, "canjoin");
+	
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
     static {
@@ -56,6 +58,8 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
           return TYPE;
         case 3: // COMMENT
           return COMMENT;
+	    // case 4:
+		//   return CANJOIN;
         default:
           return null;
       }
@@ -106,6 +110,8 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.COMMENT, new org.apache.thrift.meta_data.FieldMetaData("comment", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+	// tmpMap.put(_Fields.CANJOIN, new org.apache.thrift.meta_data.FieldMetaData("canjoin", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        // new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FieldSchema.class, metaDataMap);
   }
@@ -122,6 +128,7 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
     this.name = name;
     this.type = type;
     this.comment = comment;
+
   }
 
   /**
@@ -153,6 +160,14 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
   public String getName() {
     return this.name;
   }
+
+  // public void setCanjoin(boolean canjoin) {
+  //   this.canjoin = canjoin;
+  // }
+	
+  // public boolean getCanjoin() {
+  //   return this.canjoin;
+  // }
 
   public void setName(String name) {
     this.name = name;
@@ -244,6 +259,14 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
         setComment((String)value);
       }
       break;
+	  
+	// case COMMENT:
+    //   if (value == null) {
+    //     unsetComment();
+    //   } else {
+    //     setComment((boolean)value);
+    //   }
+    //   break;
 
     }
   }
@@ -258,6 +281,9 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
 
     case COMMENT:
       return getComment();
+	  
+	// case CANJOIN:
+    //   return getCanjoin();
 
     }
     throw new IllegalStateException();
@@ -276,6 +302,7 @@ public class FieldSchema implements org.apache.thrift.TBase<FieldSchema, FieldSc
       return isSetType();
     case COMMENT:
       return isSetComment();
+
     }
     throw new IllegalStateException();
   }
