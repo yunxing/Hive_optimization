@@ -423,6 +423,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
           Path path = new Path(tmpURIPath);
           FileSystem fs = path.getFileSystem(hconf);
           File file = new File(path.toUri().getPath());
+		  fs.create(path);
           fileLength = hashTable.flushMemoryCacheToPersistent(file);
           console.printInfo(Utilities.now() + "\tUpload 1 File to: " + tmpURIPath + " File size: "
               + fileLength);
