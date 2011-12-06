@@ -396,7 +396,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
 	MemoryMXBean memoryMXBean;
 	System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
 	memoryMXBean = ManagementFactory.getMemoryMXBean();
-	LOG.info("before we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+	LOG.info("yunxing : before we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
 	//===code changed====	
     try {
       if (mapJoinTables != null) {
@@ -435,7 +435,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
 	  //====code changed====
 	  System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
 	  memoryMXBean = ManagementFactory.getMemoryMXBean();
-	  LOG.info("after we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+	  LOG.info("yunxing : after we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
 	  //===code changed====
       super.closeOp(abort);
     } catch (Exception e) {

@@ -305,7 +305,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			MemoryMXBean memoryMXBean;
 			System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
 			memoryMXBean = ManagementFactory.getMemoryMXBean();
-			LOG.info("before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+			LOG.info("yunxing : before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
 			//===code changed====	
 			HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>(
 			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
@@ -397,7 +397,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 
 			  //====code changed====
 			  System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
-			  System.out.println("after we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+			  LOG.info("yunxing : after we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
 			  //===code changed====	
 			
 			}
