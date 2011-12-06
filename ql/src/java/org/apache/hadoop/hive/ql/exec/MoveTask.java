@@ -350,8 +350,6 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				List<ObjectInspector> valueFieldsOI = new ArrayList<ObjectInspector>();
 				for (org.apache.hadoop.hive.metastore.api.FieldSchema f : tTable.getSd().getCols())				
 				{
-				  if(fs.getName().equals(f.getName()))
-					continue;
 				  TypeInfo typeInfo = TypeInfoUtils.getTypeInfoFromTypeString(f.getType());
 				  ExprNodeEvaluator en = ExprNodeEvaluatorFactory.get(new ExprNodeColumnDesc(typeInfo, f.getName(), "" + i, false));
 				  en.initialize((StructObjectInspector)serde.getObjectInspector());
