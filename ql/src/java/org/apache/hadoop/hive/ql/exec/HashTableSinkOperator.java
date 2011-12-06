@@ -56,7 +56,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
     Serializable {
   private static final long serialVersionUID = 1L;
   private static final Log LOG = LogFactory.getLog(HashTableSinkOperator.class.getName());
-
+  private int lineNum = 0;
   // from abstract map join operator
   /**
    * The expressions for join inputs's join keys.
@@ -307,6 +307,7 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
         setKeyMetaData();
         firstRow = false;
       }
+	  
       alias = order[tag];
       // alias = (byte)tag;
 
@@ -352,6 +353,8 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
         res = o.getObj();
         res.add(value);
       }
+	  if (lineNum ++ > hashTableScale && lineNum % hashTableScale == 0)
+		hashTable.isAbort(rowNumber, console);
 
 
     } catch (SerDeException e) {

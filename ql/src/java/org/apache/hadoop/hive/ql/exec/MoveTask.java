@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.security.AccessControlException;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -287,6 +288,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  float hashTableMaxMemoryUsage = HiveConf.getFloatVar(conf,
 															   HiveConf.ConfVars.HIVEHASHTABLEMAXMEMORYUSAGE);
 		  long hashTableScale = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
+		  System.out.println("HASH TABLE SCALE:" + hashTableScale);
 		  if (hashTableScale <= 0) {
 			hashTableScale = 1;
 		  }
@@ -302,18 +304,20 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
 			boolean isAbort = false;
 			int rowNumber = 0;
+			int lineNumber = 0;
 			int splitNum = 0;
 			//scan each splits
 			System.out.println("input splits length:" + inputSplits.length);
 			while(!isAbort && splitNum < inputSplits.length)
 			{
+			  System.out.println("SplitNum:" + splitNum);
 			  RecordReader<WritableComparable, Writable> currRecReader;
 			  currRecReader = inputFormat.getRecordReader(inputSplits[splitNum++], jc, Reporter.NULL);
 			  WritableComparable key;
 			  Writable value;
 			  key = currRecReader.createKey();
 			  value = currRecReader.createValue();
-			  
+
 			  boolean ret = currRecReader.next(key, value);
 			  while (!isAbort && ret)
 			  {
@@ -339,6 +343,8 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				List<ObjectInspector> valueFieldsOI = new ArrayList<ObjectInspector>();
 				for (org.apache.hadoop.hive.metastore.api.FieldSchema f : tTable.getSd().getCols())				
 				{
+				  if(fs.getName().equals(f.getName()))
+					continue;
 				  TypeInfo typeInfo = TypeInfoUtils.getTypeInfoFromTypeString(f.getType());
 				  ExprNodeEvaluator en = ExprNodeEvaluatorFactory.get(new ExprNodeColumnDesc(typeInfo, f.getName(), "" + i, false));
 				  en.initialize((StructObjectInspector)serde.getObjectInspector());
@@ -348,12 +354,13 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				  valueFields.add(en);
 				}
 				
+				
 				Object[] values = new Object[valueFields.size()];
-				for (int j = 0; j < valueFields.size(); j++) {
-				  values[j] = ObjectInspectorUtils.copyToStandardObject(((LazyPrimitive) valueFields.get(j).evaluate(row.o)).getWritableObject()
-																		, valueFieldsOI.get(j),
-																		ObjectInspectorCopyOption.WRITABLE);
-				}
+				 for (int j = 0; j < valueFields.size(); j++) {
+				   values[j] = ObjectInspectorUtils.copyToStandardObject(((LazyPrimitive) valueFields.get(j).evaluate(row.o)).getWritableObject()
+				 														, valueFieldsOI.get(j),
+				 														ObjectInspectorCopyOption.WRITABLE);
+				 }
 
 				MapJoinObjectValue o = hashTable.get(keyMap);
 				MapJoinRowContainer<Object[]> res = null;
@@ -365,30 +372,41 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				  // Construct externalizable objects for key and value
 				  if (needNewKey) {
 					MapJoinObjectValue valueObj = new MapJoinObjectValue(0, res);
-
-					rowNumber++;
-					if (rowNumber > hashTableScale && rowNumber % hashTableScale == 0) {
-					  isAbort = hashTable.isAbort(rowNumber, console);
-					  if (isAbort) {
-						break;
-					  }
-					}
 					hashTable.put(keyMap, valueObj);
 				  }
-
 				} else {
 				  res = o.getObj();
 				  res.add(values);
 				}
-				
+
+				if (lineNumber++ >= hashTableScale && lineNumber % hashTableScale == 0) {
+				  System.out.println("isAbort?");
+				  System.out.println("Linenumber" + lineNumber);
+				  isAbort = hashTable.isAbort(rowNumber, console);
+				  if (isAbort) {
+					break;
+				  }
+				}
 				ret = currRecReader.next(key, value);
 			  }
+
+
+			
 			}
 			++i;
+			
 			if (isAbort)
+			{
+			  table.setProperty(fs.getName(),"BAD");
+			  db.alterTable(tbd.getTable().getTableName(), table);			  
 			  System.out.println("Column: " + fs.getName() + " can not be used to hash join ");
+			}
 			else
+			{
+			  table.setProperty(fs.getName(),"GOOD");
+			  db.alterTable(tbd.getTable().getTableName(), table);
 			  System.out.println("Column: " + fs.getName() + " can be used to hash join ");
+			}
 		  }
 		  
 

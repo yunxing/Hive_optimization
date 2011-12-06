@@ -151,6 +151,9 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
       // run the map join task
 	  console.printInfo("map join !!!!!!!!!!");
       Task<? extends Serializable> task = ctx.getAliasToTask().get(bigTableAlias);
+	  for (String s : ctx.getAliasToTask().keySet())
+		System.out.println("key sets:" + s);
+		
       //set task tag
       if(task.getTaskTag() == Task.CONVERTED_LOCAL_MAPJOIN) {
         task.getBackupTask().setTaskTag(Task.BACKUP_COMMON_JOIN);
@@ -242,6 +245,7 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
         long size = pair.size;
         idx--;
         if (!bigAliasFound && aliasToTask.get(alias) != null) {
+
           // got the big table
           bigAliasFound = true;
           bigTableFileAlias = alias;
@@ -252,14 +256,21 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
 	  //====CODE CHANGED====
 	  //Hive db = Hive.get(conf);
 	  Table smallTable= aliasToTable.get(aliasFileSizeList.get(0).alias);
-	  System.out.println("Small table name:" + smallTable.getTTable().getTableName());
+	  System.out.println("columnToJoin:" + columnToJoin);
+	  String canJoin = smallTable.getProperty(columnToJoin);
+	  System.out.println("canJoin:" + canJoin);
+	  System.out.println("alias[1]:" + aliasFileSizeList.get(1).alias);
+	  if (canJoin.equals("GOOD"))
+		return aliasFileSizeList.get(1).alias;
+	  else
+		return null;
       // compare with threshold
-      long threshold = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVESMALLTABLESFILESIZE);
-      if (smallTablesFileSizeSum <= threshold) {
-        return bigTableFileAlias;
-      } else {
-        return null;
-      }
+      // long threshold = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVESMALLTABLESFILESIZE);
+      // if (smallTablesFileSizeSum <= threshold) {
+      //   return bigTableFileAlias;
+      // } else {
+      //   return null;
+      // }
     } catch (Exception e) {
       e.printStackTrace();
       return null;
