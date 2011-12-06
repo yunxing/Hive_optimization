@@ -421,12 +421,9 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
           console.printInfo(Utilities.now() + "\tDump the hashtable into file: " + tmpURIPath);
           // get the hashtable file and path
           Path path = new Path(tmpURIPath);
-		  Path path2 = new Path("/root/hive/hive/tmp.hashTable");
           FileSystem fs = path.getFileSystem(hconf);
           File file = new File(path.toUri().getPath());
-          File file2 = new File("/root/hive/hive/tmp.hashTable");		        fs.create(path);
           fileLength = hashTable.flushMemoryCacheToPersistent(file);
-		  hashTable.flushMemoryCacheToPersistent(file2);
           console.printInfo(Utilities.now() + "\tUpload 1 File to: " + tmpURIPath + " File size: "
               + fileLength);
 
