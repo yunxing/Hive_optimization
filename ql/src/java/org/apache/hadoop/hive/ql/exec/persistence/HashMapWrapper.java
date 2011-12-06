@@ -161,13 +161,6 @@ public class HashMapWrapper<K, V> implements Serializable {
     System.gc();
     int size = mHash.size();
 	Set set = mHash.entrySet();
-	Iterator i = set.iterator();
-	while(i.hasNext())
-	{
-	  Map.Entry me = (Map.Entry)i.next();
-	  System.out.print(me.getKey() + ":");
-	  System.out.println(me.getValue());
-	}
     long usedMemory = memoryMXBean.getHeapMemoryUsage().getUsed();
     double rate = (double) usedMemory / (double) maxMemory;
     console.printInfo(Utilities.now() + "\tProcessing rows:\t" + numRows + "\tHashtable size:\t"
