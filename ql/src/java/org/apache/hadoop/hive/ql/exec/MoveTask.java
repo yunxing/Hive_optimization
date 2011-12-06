@@ -306,7 +306,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
 			memoryMXBean = ManagementFactory.getMemoryMXBean();
 			LOG.info("yunxing : before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
-			//===code changed====	
+			//===code changed====
 			HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>(
 			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
 			boolean isAbort = false;
@@ -317,6 +317,11 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			System.out.println("input splits length:" + inputSplits.length);
 			while(!isAbort && splitNum < inputSplits.length)
 			{
+			  if (splitNum >= 1)
+			  {
+				isAbort = true;
+				break;
+			  }
 			  System.out.println("SplitNum:" + splitNum);
 			  RecordReader<WritableComparable, Writable> currRecReader;
 			  currRecReader = inputFormat.getRecordReader(inputSplits[splitNum++], jc, Reporter.NULL);
@@ -324,7 +329,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			  Writable value;
 			  key = currRecReader.createKey();
 			  value = currRecReader.createValue();
-
+			  System.out.println("begin scanning");
 			  boolean ret = currRecReader.next(key, value);
 			  while (!isAbort && ret)
 			  {
