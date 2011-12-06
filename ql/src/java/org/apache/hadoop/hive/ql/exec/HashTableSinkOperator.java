@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -240,12 +243,15 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
     for (int pos = 0; pos < numAliases; pos++) {
       metadataValueTag[pos] = -1;
     }
+
     mapJoinTables = new HashMap<Byte, HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>>();
 
     int hashTableThreshold = HiveConf.getIntVar(hconf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
     float hashTableLoadFactor = HiveConf.getFloatVar(hconf,
         HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
     float hashTableMaxMemoryUsage = this.getConf().getHashtableMemoryUsage();
+	System.out.println("hashTableMaxMemoryUsage:" + hashTableMaxMemoryUsage);
+	
 
     hashTableScale = HiveConf.getLongVar(hconf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
     if (hashTableScale <= 0) {
@@ -386,6 +392,12 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
 
   @Override
   public void closeOp(boolean abort) throws HiveException {
+	//====code changed====
+	MemoryMXBean memoryMXBean;
+	System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
+	memoryMXBean = ManagementFactory.getMemoryMXBean();
+	System.out.println("before we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+	//===code changed====	
     try {
       if (mapJoinTables != null) {
         // get tmp file URI
@@ -421,7 +433,12 @@ public class HashTableSinkOperator extends TerminalOperator<HashTableSinkDesc> i
           hashTable.close();
         }
       }
-
+	  mapJoinTables = null;
+	  //====code changed====
+	  System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
+	  memoryMXBean = ManagementFactory.getMemoryMXBean();
+	  System.out.println("after we clear:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+	  //===code changed====
       super.closeOp(abort);
     } catch (Exception e) {
       LOG.error("Generate Hashtable error");

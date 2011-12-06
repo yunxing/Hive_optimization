@@ -182,10 +182,10 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           if (aliasKnownSize != null && aliasKnownSize.longValue() > 0) {
             long smallTblTotalKnownSize = aliasTotalKnownInputSize
                 - aliasKnownSize.longValue();
-            if(smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
-              //this table is not good to be a big table.
-              continue;
-            }
+            // if(smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
+            //   //this table is not good to be a big table.
+            //   continue;
+            // }
           }
           
           // add into conditional task

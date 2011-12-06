@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -285,8 +287,8 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  int hashTableThreshold = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
 		  float hashTableLoadFactor = HiveConf.getFloatVar(conf,
 														   HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
-		  float hashTableMaxMemoryUsage = HiveConf.getFloatVar(conf,
-															   HiveConf.ConfVars.HIVEHASHTABLEMAXMEMORYUSAGE);
+		  float hashTableMaxMemoryUsage = (float)0.9;//HiveConf.getFloatVar(conf,
+			//			   HiveConf.ConfVars.HIVEHASHTABLEMAXMEMORYUSAGE);
 		  long hashTableScale = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
 		  System.out.println("HASH TABLE SCALE:" + hashTableScale);
 		  if (hashTableScale <= 0) {
@@ -299,7 +301,12 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  //build a hashtable for every column
 		  for (org.apache.hadoop.hive.metastore.api.FieldSchema fs : tTable.getSd().getCols())
 		  {
-			
+			//====code changed====
+			MemoryMXBean memoryMXBean;
+			System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
+			memoryMXBean = ManagementFactory.getMemoryMXBean();
+			System.out.println("before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+			//===code changed====	
 			HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>(
 			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
 			boolean isAbort = false;
@@ -390,11 +397,14 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				ret = currRecReader.next(key, value);
 			  }
 
-
+			  //====code changed====
+			  System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
+			  System.out.println("after we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+			  //===code changed====	
 			
 			}
 			++i;
-			
+		
 			if (isAbort)
 			{
 			  table.setProperty(fs.getName(),"BAD");
