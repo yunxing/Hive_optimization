@@ -290,7 +290,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  float hashTableMaxMemoryUsage = (float)0.9;//HiveConf.getFloatVar(conf,
 			//			   HiveConf.ConfVars.HIVEHASHTABLEMAXMEMORYUSAGE);
 		  long hashTableScale = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVEHASHTABLESCALE);
-		  System.out.println("HASH TABLE SCALE:" + hashTableScale);
+		  LOG.info("HASH TABLE SCALE:" + hashTableScale);
 		  if (hashTableScale <= 0) {
 			hashTableScale = 1;
 		  }
@@ -305,7 +305,7 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			MemoryMXBean memoryMXBean;
 			System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
 			memoryMXBean = ManagementFactory.getMemoryMXBean();
-			System.out.println("before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
+			LOG.info("before we create hashtable:"+memoryMXBean.getHeapMemoryUsage().getUsed());
 			//===code changed====	
 			HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashTable = new HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>(
 			  hashTableThreshold, hashTableLoadFactor, hashTableMaxMemoryUsage);
