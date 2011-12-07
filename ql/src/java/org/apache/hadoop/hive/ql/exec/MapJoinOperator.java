@@ -45,6 +45,9 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
 import org.apache.hadoop.util.ReflectionUtils;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+
 /**
  * Map side Join operator implementation.
  */
@@ -52,6 +55,7 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
   private static final long serialVersionUID = 1L;
   private static final Log LOG = LogFactory.getLog(MapJoinOperator.class.getName());
 
+  public static MemoryMXBean memoryMXBean;
 
   protected transient Map<Byte, HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue>> mapJoinTables;
 
@@ -188,7 +192,7 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
           .entrySet()) {
         Byte pos = entry.getKey();
         HashMapWrapper<AbstractMapJoinKey, MapJoinObjectValue> hashtable = entry.getValue();
-        String filePath = Utilities.generatePath(baseDir, pos, currentFileName);
+        String filePath = Utilities.generatePath(baseDir, conf.getDumpFilePrefix(), pos, currentFileName);
         Path path = new Path(filePath);
         LOG.info("\tLoad back 1 hashtable file from tmp file uri:" + path.toString());
         hashtable.initilizePersistentHash(path.toUri().getPath());
@@ -297,11 +301,24 @@ public class MapJoinOperator extends AbstractMapJoinOperator<MapJoinDesc> implem
   @Override
   public void closeOp(boolean abort) throws HiveException {
 
+    // ricardoj checking mapper hashmap usage
+    memoryMXBean = ManagementFactory.getMemoryMXBean();
+    System.gc();  System.gc();  System.gc();  System.gc();  System.gc();  System.gc();
+    long usedMemory = memoryMXBean.getHeapMemoryUsage().getUsed();
+    LOG.info("ricardoj memory usage after deleting tables: " + usedMemory/(1024*1024) + "MB");
+
     if (mapJoinTables != null) {
       for (HashMapWrapper<?, ?> hashTable : mapJoinTables.values()) {
         hashTable.close();
       }
     }
+    
+    mapJoinTables = null;
+    // ricardoj
+    System.gc();  System.gc();  System.gc();  System.gc();  System.gc();  System.gc();
+    usedMemory = memoryMXBean.getHeapMemoryUsage().getUsed();
+    LOG.info("ricardoj memory usage after deleting tables: " + usedMemory/(1024*1024) + "MB");
+    
     super.closeOp(abort);
   }
 
