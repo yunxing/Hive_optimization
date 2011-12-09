@@ -262,15 +262,15 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
 	  System.out.println("alias[1]:" + aliasFileSizeList.get(1).alias);
 	  if (canJoin.equals("GOOD"))
 		return aliasFileSizeList.get(1).alias;
-	  else
+	  else if (canJoin.equals("BAD"))
 		return null;
-      // compare with threshold
-      // long threshold = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVESMALLTABLESFILESIZE);
-      // if (smallTablesFileSizeSum <= threshold) {
-      //   return bigTableFileAlias;
-      // } else {
-      //   return null;
-      // }
+      //compare with threshold
+      long threshold = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVESMALLTABLESFILESIZE);
+      if (smallTablesFileSizeSum <= threshold) {
+         return bigTableFileAlias;
+      } else {
+         return null;
+      }
     } catch (Exception e) {
       e.printStackTrace();
       return null;

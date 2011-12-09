@@ -301,6 +301,15 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  //build a hashtable for every column
 		  for (org.apache.hadoop.hive.metastore.api.FieldSchema fs : tTable.getSd().getCols())
 		  {
+			if(SessionState.get().getHiveVariables().get(table.getTableName() + "." + fs.getName() + "." + "canJoin") != null)
+			  LOG.info("yunxing : creating hashtable for column : " + table.getTableName() + "." + fs.getName());
+			else
+			{
+			  table.setProperty(fs.getName(),"UNKNOWN");
+			  db.alterTable(tbd.getTable().getTableName(), table);			  
+			  LOG.info("yunxing : skipping building hashtable for column : " + fs.getName());
+			  continue;
+			}
 			//====code changed====
 			MemoryMXBean memoryMXBean;
 			System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();System.gc();
