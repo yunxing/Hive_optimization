@@ -375,12 +375,16 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 				
 				
 				Object[] values = new Object[valueFields.size()];
+				try{
 				 for (int j = 0; j < valueFields.size(); j++) {
 				   values[j] = ObjectInspectorUtils.copyToStandardObject(((LazyPrimitive) valueFields.get(j).evaluate(row.o)).getWritableObject()
 				 														, valueFieldsOI.get(j),
 				 														ObjectInspectorCopyOption.WRITABLE);
 				 }
-
+				}catch(Exception e)
+				{
+				  System.out.println("exception occur, linenumber" + lineNumber);
+				}
 				MapJoinObjectValue o = hashTable.get(keyMap);
 				MapJoinRowContainer<Object[]> res = null;
 
