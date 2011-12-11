@@ -37,6 +37,8 @@ import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.Hive;
+import org.apache.hadoop.hive.ql.session.SessionState;
+
 /**
  * ConditionalResolverSkewJoin.
  *
@@ -258,12 +260,24 @@ public class ConditionalResolverCommonJoin implements ConditionalResolver, Seria
 	  Table smallTable= aliasToTable.get(aliasFileSizeList.get(0).alias);
 	  System.out.println("columnToJoin:" + columnToJoin);
 	  String canJoin = smallTable.getProperty(columnToJoin);
+	  String memory = smallTable.getProperty(columnToJoin+".memory");
+	  String size = smallTable.getProperty(columnToJoin+".size");
 	  System.out.println("canJoin:" + canJoin);
 	  System.out.println("alias[1]:" + aliasFileSizeList.get(1).alias);
-	  if (canJoin.equals("GOOD"))
+	  String containsSinglePredicates = SessionState.get().getHiveVariables().get("containsSinglePredicates");
+	  if (canJoin.equals("GOOD") ||
+		  containsSinglePredicates != null &&
+		  containsSinglePredicates.equals("true")
+		)
+	  {
+		System.out.println("return last table");
 		return aliasFileSizeList.get(1).alias;
+	  }
 	  else if (canJoin.equals("BAD"))
+	  {
+		System.out.println("bad for join");	
 		return null;
+	  }
       //compare with threshold
       long threshold = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVESMALLTABLESFILESIZE);
       if (smallTablesFileSizeSum <= threshold) {

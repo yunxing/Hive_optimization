@@ -301,7 +301,8 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 		  //build a hashtable for every column
 		  for (org.apache.hadoop.hive.metastore.api.FieldSchema fs : tTable.getSd().getCols())
 		  {
-			if(SessionState.get().getHiveVariables().get(table.getTableName() + "." + fs.getName() + "." + "canJoin") != null)
+			if(SessionState.get().getHiveVariables().get(table.getTableName() + "." + fs.getName() + "." + "canJoin")!=null
+			   &&SessionState.get().getHiveVariables().get(table.getTableName() + "." + fs.getName() + "." + "canJoin").equals("true"))
 			  LOG.info("yunxing : creating hashtable for column : " + table.getTableName() + "." + fs.getName());
 			else
 			{
@@ -420,7 +421,14 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
 			
 			}
 			++i;
-		
+			
+			table.setProperty(fs.getName() + ".memory", "" + memoryMXBean.getHeapMemoryUsage().getUsed());
+			db.alterTable(tbd.getTable().getTableName(), table);			  
+			table.setProperty(fs.getName() + ".size", "" + hashTable.getKeySize());
+			db.alterTable(tbd.getTable().getTableName(), table);			  
+			LOG.info("yunxing : hashRowNumber for" + fs.getName() + ":" + hashTable.getKeySize());
+			LOG.info("yunxing : hashtable memory for" + fs.getName() + ":" + memoryMXBean.getHeapMemoryUsage().getUsed());
+
 			if (isAbort)
 			{
 			  table.setProperty(fs.getName(),"BAD");
